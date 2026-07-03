@@ -1,12 +1,13 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const readline = require('readline');
+const http = require('http'); // THÊM MỚI: Thư viện tạo cổng Web để treo 24/7
 
 const config = {
     host: 'khaidz1203-HzpN.aternos.me', 
     port: 46719,                         
     username: 'BotAFK24h',               
-    version: false                       
+    version: false // Tự động phát hiện phiên bản server                      
 };
 
 const ADMIN_NAME = 'qkhai'; 
@@ -45,7 +46,7 @@ function createBot() {
 
     // 1. XỬ LÝ LỆNH CHAT TRONG GAME + XEM LIVE CHAT
     bot.on('chat', (username, message) => {
-        // DÒNG THÊM MỚI: In toàn bộ cuộc trò chuyện trong game lên màn hình Termux
+        // In toàn bộ cuộc trò chuyện trong game lên màn hình Termux
         console.log(`[LIVE CHAT] ${username}: ${message}`);
 
         if (username === ADMIN_NAME) {
@@ -96,6 +97,10 @@ function createBot() {
             if (bedBlock) {
                 bot.pathfinder.setGoal(new goals.GoalBlock(bedBlock.position.x, bedBlock.position.y, bedBlock.position.z));
                 const checkArrival = setInterval(async () => {
+                    if (!bot || !bot.entity) {
+                        clearInterval(checkArrival);
+                        return;
+                    }
                     const distance = bot.entity.position.distanceTo(bedBlock.position);
                     if (distance <= 2) {
                         clearInterval(checkArrival);
@@ -124,15 +129,15 @@ function createBot() {
     });
 
     bot.on('error', (err) => console.error('[Lỗi Bot 1]:', err));
-
-    // CHỐNG AFK CLICK VUNG TAY
-    setInterval(() => {
-        if (bot && bot.entity && !bot.isSleeping) {
-            bot.swingArm('right'); 
-            console.log('[Bot 1] Đã click vung tay chống AFK.');
-        }
-    }, 180000); 
 }
+
+// CƠ CHẾ CHỐNG AFK CLICK VUNG TAY (ĐƯA RA NGOÀI VÒNG LẶP ĐỂ TRÁNH TRÙNG LẶP INTERVAL ĐÈ NHAU)
+setInterval(() => {
+    if (bot && bot.entity && !bot.isSleeping) {
+        bot.swingArm('right'); 
+        console.log('[Bot 1] Đã click vung tay chống AFK.');
+    }
+}, 180000); 
 
 // CHÁT TỪ TERMUX VÀO GAME
 function setupTermuxChat() {
@@ -151,4 +156,14 @@ function setupTermuxChat() {
     });
 }
 
+// KHỞI CHẠY BOT MINECRAFT
 createBot();
+
+// ==================== KHU VỰC WEB SERVER GIỮ BOT 24/7 ====================
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('BotAFK24h của Khải hiện đang hoạt động trực tuyến trên Cloud Render!');
+}).listen(PORT, () => {
+    console.log(`🌐 [Web Server] Đã mở cổng thành công tại port: ${PORT}. Hãy dùng link Render này để gắn vào UptimeRobot!`);
+});
